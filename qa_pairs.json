@@ -1,0 +1,135 @@
+[
+  {
+    "question": "1. Which of the following claims is supported by scientific data?",
+    "answer": "c. The",
+    "short": "supported scientific claim",
+    "group": [
+      "astro"
+    ]
+  },
+  {
+    "question": "2. You observe two galaxies in the sky using the same telescope, with the same field of view, as depicted in the diagrams. Assume these galaxies are the same physical size and shape as each other. What statement about these two galaxies is most likely to be true?",
+    "answer": "c. Galaxy",
+    "short": "compare galaxies visually",
+    "group": [
+      "astro"
+    ]
+  },
+  {
+    "question": "3. Galaxy C is known to be 50 Mpc from Earth. Galaxy D is 100 Mpc from Earth. What statement about these two galaxies is most likely to be true?",
+    "answer": "c. Galaxy",
+    "short": "statement about galaxies",
+    "group": [
+      "astro"
+    ]
+  },
+  {
+    "question": "4. Three universes are represented by Hubble plots. If the three universes (A, B, C) are the same size, rank the age of the universes from oldest to youngest.",
+    "answer": "C-B-A",
+    "short": "universe age ranking",
+    "group": [
+      "astro"
+    ]
+  },
+  {
+    "question": ". Each student in the eighth-grade monitored the time (in hours) spent on out of school activities a",
+    "answer": "b. Generally",
+    "short": "student time spent",
+    "group": [
+      "data_science"
+    ]
+  },
+  {
+    "question": "6. These graphs show possible relationships between womens bone density and age. Which of the following graphs shows that as women grow older they tend to have lower bone density?",
+    "answer": "a. Graph",
+    "short": "bone density graph",
+    "group": [
+      "data_science",
+      "histogram_interpretation"
+    ]
+  },
+  {
+    "question": "7. A citrus farmer grows two types of oranges: mandarin and navel. The distributions of weight for each type of orange grown on his farm are shown in the histograms below.The farmer will select a random sample of 100 mandarin oranges and a random sample of 100 navel oranges. Which sample is more likely to produce a sample mean within 1 ounce of the mean weight for its population?",
+    "answer": "a. The",
+    "short": "the citrus farmer",
+    "group": [
+      "data_science",
+      "advanced_data_science",
+      "histogram_interpretation"
+    ]
+  },
+  {
+    "question": "8. In Classes A, B, and C, every student estimated the height of their school building in feet. The histograms represent the number of students in each class who estimated a particular height value. Every class had a mean estimate of 60 feet. Which class would likely report the highest confidence in their reported mean estimate?",
+    "answer": "b. Class",
+    "short": "class confidence estimates",
+    "group": [
+      "data_science",
+      "advanced_data_science",
+      "histogram_interpretation"
+    ]
+  },
+  {
+    "question": "9. Here is a histogram for a set of scores from a 10-item quiz. How many people received scores higher than 4?",
+    "answer": "b. 2",
+    "short": "quiz score histogram",
+    "group": [
+      "data_science",
+      "histogram_interpretation"
+    ]
+  },
+  {
+    "question": "7. These graphs show possible relationships between womens bone density and age. Which of the following graphs shows that as women grow older they tend to have lower bone density?",
+    "answer": "a. Graph",
+    "short": "bone density graph",
+    "group": [
+      "data_science",
+      "histogram_interpretation"
+    ]
+  },
+  {
+    "question": "5. Here is a histogram for a set of scores from a 10-item quiz. How many people received scores higher than 4?",
+    "answer": "b. 2",
+    "short": "quiz score histogram",
+    "group": [
+      "data_science",
+      "histogram_interpretation"
+    ]
+  },
+  {
+    "question": "3. Galaxy C is known to be 50 Mpc from Earth. Galaxy D is 100 Mpc from Earth. (A Mpc is about 3 million light-years.) What statement about these two galaxies is most likely to be true?",
+    "answer": "c. Galaxy",
+    "short": "Galaxy known from",
+    "group": [
+      "astro"
+    ]
+  },
+  {
+    "question": "8. Which class would you expect to have the most confidence that the roofs length is actually 50 meters, and why?",
+    "answer": "a. Class",
+    "short": "class most confidence roofs",
+    "group": [
+      "data_science",
+      "advanced_data_science",
+      "histogram_interpretation"
+    ]
+  },
+  {
+    "question": "9. Which class would you expect to have the least confidence that the roofs length is actually 50 meters, and why?",
+    "answer": "b. Class",
+    "short": "class least confidence roofs",
+    "group": [
+      "data_science",
+      "advanced_data_science",
+      "histogram_interpretation"
+    ]
+  },
+  {
+    "question": "10. A farmer wants to evaluate the health of his corn crop. One way to do this is to find the average height of the corn across his entire field of 20,000 stalks. He only has time to measure the height of 20 stalks himself. Should he hire more people to help measure more stalks? Why or why not?",
+    "answer": "c. Yes",
+    "short": "hire corn counters",
+    "group": [
+      "data_science",
+      "advanced_data_science"
+    ]
+  }
+]
