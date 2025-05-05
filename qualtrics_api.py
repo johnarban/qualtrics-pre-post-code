@@ -47,7 +47,7 @@ def start_response_export(token, data_center, survey_id, format = "csv", numeric
 
 from typing import Literal
 
-def check_response_export(token, data_center, survey_id, export_progress_id) -> str | Literal[False]:
+def check_response_export(token, data_center, survey_id, export_progress_id):
     check_url = "https://{data_center}.qualtrics.com/API/v3/surveys/{survey_id}/export-responses/{export_progress_id}".format(data_center=data_center, survey_id=survey_id, export_progress_id = export_progress_id)
 
     

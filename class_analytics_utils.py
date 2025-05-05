@@ -815,6 +815,7 @@ def get_class_info(df_combined, id_column):
     class_info = db.get_students_classes_info(
         frozenset(filter(lambda x: x.isnumeric(), df_combined[id_column].unique()))
     )
+
     if class_info is None:
         df_combined["class_name"] = df_combined[
             "CosmicDS Pre-Survey - Course/Section_pre"
@@ -941,7 +942,7 @@ def create_post_reflection_summary(qoip):
     )
 
 
-from scipy.stats import wilcoxon, PermutationMethod
+from scipy.stats import wilcoxon
 
 
 def wilcoxon_signed_rank_test(pre, post):
