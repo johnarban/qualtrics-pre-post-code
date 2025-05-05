@@ -1,82 +1,82 @@
 [
     {
         "question": "11. How strongly do you agree or disagree with the following statements? - a. I am interested in learning to use data to answer questions in everyday life.",
-        "group": ["feelings_about_data"],
+        "group": ["mlo_3c_feelings_about_data"],
         "score": "1"
     },
     {
         "question": "11. How strongly do you agree or disagree with the following statements? - b. I feel intimidated when I have to deal with data and statistics.",
-        "group": ["exclude-feelings_about_data"],
+        "group": ["mlo_3c_feelings_about_data"],
         "score": "-1"
     },
     {
         "question": "11. How strongly do you agree or disagree with the following statements? - c. I find it boring to work with data.",
-        "group": ["feelings_about_data", "interest_in_science"],
+        "group": ["mlo_3c_feelings_about_data"],
         "score": "-1"
     },
     {
         "question": "11. How strongly do you agree or disagree with the following statements? - d. I am interested in current science discoveries.",
-        "group": ["interest_in_science"],
+        "group": ["mlo_1a_interest_in_science"],
         "score": "1"
     },
     {
         "question": "11. How strongly do you agree or disagree with the following statements? - e. I am likely to read an article or watch a show about NASA science.",
-        "group": ["interest_in_science"],
+        "group": ["mlo_1a_interest_in_science"],
         "score": "1"
     },
     {
         "question": "11. How strongly do you agree or disagree with the following statements? - f. I find the process of interpreting data to be mysterious",
-        "group": ["feelings_about_data"],
+        "group": ["mlo_3c_feelings_about_data"],
         "score": "-1"
     },
     {
         "question": "11. How strongly do you agree or disagree with the following statements? - g. I understand how scientists learn from NASA data and missions",
-        "group": ["interest_in_science", "nature_of_science"],
+        "group": ["mlo_2a_nature_of_science"],
         "score": "1"
     },
     {
         "question": "12. How strongly do you agree or disagree with the following statements? - a. I see myself as a person who can learn from data.",
-        "group": ["stem_identity"],
+        "group": ["mlo_3c_feelings_about_data"],
         "score": "1"
     },
     {
         "question": "12. How strongly do you agree or disagree with the following statements? - b. My family see me as a STEM person",
-        "group": ["stem_identity"],
+        "group": ["mlo_1a_stem_identity"],
         "score": "1"
     },
     {
         "question": "12. How strongly do you agree or disagree with the following statements? - c. My friends see me as a STEM person",
-        "group": ["stem_identity"],
+        "group": ["mlo_1a_stem_identity"],
         "score": "1"
     },
     {
         "question": "12. How strongly do you agree or disagree with the following statements? - d. My teachers see me as a STEM person",
-        "group": ["stem_identity"],
+        "group": ["mlo_1a_stem_identity"],
         "score": "1"
     },
     {
         "question": "13. How strongly do you agree or disagree with the following statements? - a. Experience working with data helps one become a more effective \"consumer\" of research findings.",
-        "group": ["feelings_about_data"],
+        "group": ["mlo_3c_feelings_about_data"],
         "score": "1"
     },
     {
         "question": "13. How strongly do you agree or disagree with the following statements? - b. Scientific models can change with new evidence",
-        "group": ["nature_of_science"],
+        "group": ["mlo_2a_nature_of_science"],
         "score": "1"
     },
     {
         "question": "13. How strongly do you agree or disagree with the following statements? - c. It is possible to eliminate all sources of error in an investigation by being precise.",
-        "group": ["nature_of_science"],
+        "group": ["mlo_2a_nature_of_science"],
         "score": "-1"
     },
     {
         "question": "13. How strongly do you agree or disagree with the following statements? - d. It is possible to draw conclusions from imperfect or messy data.",
-        "group": ["nature_of_science"],
+        "group": ["mlo_2a_nature_of_science"],
         "score": "1"
     },
     {
         "question": "13. How strongly do you agree or disagree with the following statements? - e. Scientists have already found answers to most questions about nature",
-        "group": ["nature_of_science"],
+        "group": ["mlo_2a_nature_of_science"],
         "score": "-1"
     },
     {

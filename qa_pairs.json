@@ -4,7 +4,12 @@
     "answer": "c. The",
     "short": "supported scientific claim",
     "group": [
-      "astro"
+      "astro",
+      "mlo_1b_disciplinary_content"
+    ],
+    "survey_version": [
+      "2025",
+      "2024"
     ]
   },
   {
@@ -12,7 +17,12 @@
     "answer": "c. Galaxy",
     "short": "compare galaxies visually",
     "group": [
-      "astro"
+      "astro",
+      "mlo_1b_disciplinary_content"
+    ],
+    "survey_version": [
+      "2025",
+      "2024"
     ]
   },
   {
@@ -20,7 +30,11 @@
     "answer": "c. Galaxy",
     "short": "statement about galaxies",
     "group": [
-      "astro"
+      "astro",
+      "mlo_1b_disciplinary_content"
+    ],
+    "survey_version": [
+      "2024"
     ]
   },
   {
@@ -28,7 +42,12 @@
     "answer": "C-B-A",
     "short": "universe age ranking",
     "group": [
-      "astro"
+      "astro",
+      "mlo_1b_disciplinary_content"
+    ],
+    "survey_version": [
+      "2025",
+      "2024"
     ]
   },
   {
@@ -36,7 +55,12 @@
     "answer": "b. Generally",
     "short": "student time spent",
     "group": [
-      "data_science"
+      "data_science",
+      "mlo_3c_data_skills"
+    ],
+    "survey_version": [
+      "2025",
+      "2024"
     ]
   },
   {
@@ -45,7 +69,11 @@
     "short": "bone density graph",
     "group": [
       "data_science",
-      "histogram_interpretation"
+      "histogram_interpretation",
+      "mlo_3c_data_skills"
+    ],
+    "survey_version": [
+      "2024"
     ]
   },
   {
@@ -55,7 +83,11 @@
     "group": [
       "data_science",
       "advanced_data_science",
-      "histogram_interpretation"
+      "histogram_interpretation",
+      "mlo_3c_data_skills"
+    ],
+    "survey_version": [
+      "2024"
     ]
   },
   {
@@ -65,7 +97,11 @@
     "group": [
       "data_science",
       "advanced_data_science",
-      "histogram_interpretation"
+      "histogram_interpretation",
+      "mlo_3c_data_skills"
+    ],
+    "survey_version": [
+      "2024"
     ]
   },
   {
@@ -74,7 +110,11 @@
     "short": "quiz score histogram",
     "group": [
       "data_science",
-      "histogram_interpretation"
+      "histogram_interpretation",
+      "mlo_3c_data_skills"
+    ],
+    "survey_version": [
+      "2024"
     ]
   },
   {
@@ -83,7 +123,11 @@
     "short": "bone density graph",
     "group": [
       "data_science",
-      "histogram_interpretation"
+      "histogram_interpretation",
+      "mlo_3c_data_skills"
+    ],
+    "survey_version": [
+      "2025"
     ]
   },
   {
@@ -92,7 +136,11 @@
     "short": "quiz score histogram",
     "group": [
       "data_science",
-      "histogram_interpretation"
+      "histogram_interpretation",
+      "mlo_3c_data_skills"
+    ],
+    "survey_version": [
+      "2025"
     ]
   },
   {
@@ -100,8 +148,12 @@
     "answer": "c. Galaxy",
     "short": "Galaxy known from",
     "group": [
-      "astro"
-    ]
+      "astro",
+      "mlo_1b_disciplinary_content"
+    ],
+    "survey_version": [
+      "2025"
+    ]    
   },
   {
     "question": "8. Which class would you expect to have the most confidence that the roofs length is actually 50 meters, and why?",
@@ -110,8 +162,12 @@
     "group": [
       "data_science",
       "advanced_data_science",
-      "histogram_interpretation"
-    ]
+      "histogram_interpretation",
+      "mlo_3c_data_skills"
+    ],
+    "survey_version": [
+      "2025"
+    ]  
   },
   {
     "question": "9. Which class would you expect to have the least confidence that the roofs length is actually 50 meters, and why?",
@@ -120,8 +176,12 @@
     "group": [
       "data_science",
       "advanced_data_science",
-      "histogram_interpretation"
-    ]
+      "histogram_interpretation",
+      "mlo_3c_data_skills"
+    ],
+    "survey_version": [
+      "2025"
+    ]  
   },
   {
     "question": "10. A farmer wants to evaluate the health of his corn crop. One way to do this is to find the average height of the corn across his entire field of 20,000 stalks. He only has time to measure the height of 20 stalks himself. Should he hire more people to help measure more stalks? Why or why not?",
@@ -129,7 +189,12 @@
     "short": "hire corn counters",
     "group": [
       "data_science",
-      "advanced_data_science"
-    ]
+      "advanced_data_science",
+      "mlo_3c_data_skills"
+
+    ],
+    "survey_version": [
+      "2025"
+    ]  
   }
 ]
