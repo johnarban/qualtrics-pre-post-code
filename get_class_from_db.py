@@ -33,7 +33,7 @@ def run_sql_query(sql_query, database_dict=None, return_df=True):
     mycursor = mydb.cursor()
     mycursor.execute(sql_query)
     # get the results
-    results = cast(list[dict], mycursor.fetchall())
+    results = mycursor.fetchall()
     # get the column names
     col_names = [desc[0] for desc in mycursor.description]  # type: ignore
     # close the connection
@@ -58,7 +58,7 @@ WHERE StudentsClasses.student_id={student_id}
 """
 
 
-def get_student_class_info(student_id) -> pd.DataFrame | None:
+def get_student_class_info(student_id):
     try:
         out = cast(
             pd.DataFrame,
@@ -73,7 +73,7 @@ def get_student_class_info(student_id) -> pd.DataFrame | None:
 
 
 # Function to get class information for a list of student IDs
-def get_students_classes_info(student_ids: list) -> pd.DataFrame | None:
+def get_students_classes_info(student_ids: list):
     try:
         # Modify the SQL query to use IN clause for multiple student IDs
         sql_query_multiple = """
