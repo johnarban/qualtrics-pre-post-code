@@ -60,13 +60,9 @@ WHERE StudentsClasses.student_id={student_id}
 
 def get_student_class_info(student_id):
     try:
-        out = cast(
-            pd.DataFrame,
-            run_sql_query(
+        return run_sql_query(
                 sql_query.format(student_id=student_id), database_keys, return_df=True
-            ),
         )
-        return out
     except Exception as e:
         print(f"Error: {e}")
         return None
@@ -93,10 +89,7 @@ def get_students_classes_info(student_ids: list):
             student_ids=",".join(map(str, student_ids))
         )
         # Run the query and return the results
-        out = cast(
-            pd.DataFrame, run_sql_query(formatted_query, database_keys, return_df=True)
-        )
-        return out
+        return run_sql_query(formatted_query, database_keys, return_df=True)
     except Exception as e:
         print(f"Error: {e}")
         return None

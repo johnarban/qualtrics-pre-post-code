@@ -422,33 +422,15 @@ def process_parent_questions(questions, df_pre, df_post, sep=2):
 
 def process_race_questions(questions, df_pre, df_post):
     """
-    Combines race and Hispanic origin questions into a single 'Student Race' column.
+    Combines race questions into a single 'Student Race' column.
     """
-    # combine the race questions
     race_questions = questions.loc[
         questions["question"].str.contains("With which race do you identify")
-        | questions["question"].str.contains("Hispanic")
     ]["question"]
 
-    # what magic is frozenset(filter(bool,v)) doing? it is removing all the empty strings from the list
     df_pre["Student Race"] = df_pre[race_questions].apply(
         lambda v: frozenset(filter(bool, v)), axis=1
-    )
-
-    # some of these will have a Yes, No for the hispanic question, we want to replace yes with Hispanic and no with nothing
-    def translate(x):
-        if x == "Yes":
-            return "Hispanic"
-        elif x == "No":
-            return "Not Hispanic"
-        else:
-            return x
-
-    df_pre["Student Race"] = (
-        df_pre["Student Race"]
-        .apply(lambda x: frozenset([translate(i).strip() for i in x]))
-        .apply(lambda x: x if len(x) > 0 else frozenset(["(empty)"]))
-    )
+    ).apply(lambda x: x if len(x) > 0 else frozenset(["(empty)"]))
 
     new_questions = [
         {
@@ -470,6 +452,48 @@ def process_race_questions(questions, df_pre, df_post):
 
     return questions, race_questions
 
+
+def process_hispanic_questions(questions, df_pre, df_post):
+    """
+    Combines Hispanic origin questions into a single 'Student Hispanic Origin' column.
+    """
+    hispanic_questions = questions.loc[
+        questions["question"].str.contains("Hispanic")
+    ]["question"].values[0]
+
+    def translate(x):
+        if x == "Yes":
+            return "Hispanic"
+        elif x == "No":
+            return "Not Hispanic"
+        else:
+            return x
+
+    df_pre["Hispanic"] = df_pre[hispanic_questions]
+    #     lambda x: translate(x).strip()
+    # ).apply(
+    #     lambda x: x if len(x) > 0 else frozenset(["(empty)"])
+    # )
+
+    new_questions = [
+        {
+            "question": "Hispanic",
+            "both": False,
+            "in_pre": True,
+            "in_post": False,
+            "tag_pre": questions.loc[
+                questions["question"].str.contains("Hispanic")
+            ]["tag_pre"].values[0],
+            "tag_post": None,
+            "question_category": "demographics",
+            "is_likert": False,
+        },
+    ]
+
+    questions = questions.loc[~questions["question"].isin([hispanic_questions])]
+    questions = pd.concat([questions, pd.DataFrame(new_questions)], ignore_index=True)
+
+    return questions, hispanic_questions
 
 # 19. With which gender do you identify? - Prefer to Self Describe - Text', '19. With which gender do you identify? - Selected Choice'
 def process_gender_questions(questions, df_pre, df_post):
@@ -803,17 +827,28 @@ def merge_questions_into_dataframes(
 
     df_pre_merged[id_column] = df_pre_merged[id_column].astype(str).str.lower()
     df_post_merged[id_column] = df_post_merged[id_column].astype(str).str.lower()
+    
+    # df_pre_merged[id_column] = pd.Categorical(
+    #     df_pre_merged[id_column].astype(str).str.lower(), 
+    #     categories=df_pre[id_column].astype(str).str.lower(), ordered=True)
+    # df_post_merged[id_column] = pd.Categorical(
+    #     df_post_merged[id_column].astype(str).str.lower(), 
+    #     categories=df_post[id_column].astype(str).str.lower(), ordered=True)
+    
+    # df_pre_merged = df_pre_merged.sort_values(by=[id_column])
+    # df_post_merged = df_post_merged.sort_values(by=[id_column])
+
 
     print(len(df_pre_merged), len(df_post_merged))
     return df_pre_merged, df_post_merged
 
 
-def get_class_info(df_combined, id_column):
+def get_class_info(df_combined: pd.DataFrame, id_column):
     """
     Merges class and educator info from the database into the combined DataFrame.
     """
     class_info = db.get_students_classes_info(
-        frozenset(filter(lambda x: x.isnumeric(), df_combined[id_column].unique()))
+        list(filter(lambda x: x.isnumeric(), df_combined[id_column].unique()))
     )
 
     if class_info is None:
@@ -890,18 +925,31 @@ def q_to_num(qtag):
             return np.inf
 
 
-def create_stats_for_pre(group):
+def create_stats_for_pre(group, columns):
     """
     Returns counts and percentages for pre-survey responses in a group.
     """
-    counts = group["response_pre"].explode().value_counts()
-    percentages = group["response_pre"].explode().value_counts(normalize=True)
-    return pd.DataFrame(
-        {"counts": counts, "percentages": np.around(percentages * 100, 1)}
-    ).rename_axis("response")
+    # counts = group["response_pre"].explode().value_counts()
+    # percentages = group["response_pre"].explode().value_counts(normalize=True)
+    # return pd.DataFrame(
+    #     {"counts": counts, "percentages": np.around(percentages * 100, 1)}
+    # ).rename_axis("response")
+    series = []
+    for col in columns:
+        counts = group[col].explode().value_counts()
+        percentages = group[col].explode().value_counts(normalize=True)
+        series.append(
+            pd.DataFrame(
+                {
+                    "counts": counts,
+                    "percentages": np.around(percentages * 100, 1),
+                }
+            ).rename_axis(col)
+        )
+    return series
 
 
-def create_post_reflection_summary(qoip):
+def create_post_reflection_summary(qoip, id_column):
     """
     Returns a tuple of pd.Series summarizing post-reflection questions (e.g., open text, likert, activity).
     Each Series can be written to a single Excel sheet for summary.
@@ -916,28 +964,51 @@ def create_post_reflection_summary(qoip):
         "Favorite Activitiy",
         "Which activity was the most difficult or confusing",
     ]
-    qs0 = qoip[qoip["question"] == qs[0]]["response_post"].value_counts()
-    qs1 = qoip[qoip["question"] == qs[1]]["response_post"].value_counts()
-    qs2_likert = qoip[qoip["question"] == qs[2]]["response_post"]
-    qs3_likert = qoip[qoip["question"] == qs[3]]["response_post"]
+    def mapping(v):
+        return{
+        'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6, 'G': 7
+    }.get(v, np.nan)
+    qs0 = qoip[qoip["question"] == qs[0]]["response_post"].value_counts().rename({'': 'NA'})
+    qs0.sort_index(inplace=True)
+    qs0['mean'] = np.nanmean(qoip[qoip["question"] == qs[0]]["response_post"].apply(mapping).to_numpy())
+    qs0['sttdev'] = np.nanstd(qoip[qoip["question"] == qs[0]]["response_post"].apply(mapping).to_numpy())
+    
+    qs1 = qoip[qoip["question"] == qs[1]]["response_post"].value_counts().rename({'': 'NA'})
+    qs1.sort_index(inplace=True)
+    qs1['mean'] = np.nanmean(qoip[qoip["question"] == qs[1]]["response_post"].apply(mapping).to_numpy())
+    qs1['sttdev'] = np.nanstd(qoip[qoip["question"] == qs[1]]["response_post"].apply(mapping).to_numpy())
+    
+    
+    qs2_likert = qoip[qoip["question"] == qs[2]]["response_post"].value_counts() # 
+    qs2_likert['mean'] = np.nanmean(qoip[qoip["question"] == qs[2]]["response_post"].apply(pd.to_numeric))
+    qs2_likert['sttdev'] = np.nanstd(qoip[qoip["question"] == qs[2]]["response_post"].apply(pd.to_numeric))
+    
+    qs3_likert = qoip[qoip["question"] == qs[3]]["response_post"].value_counts()
+    qs3_likert['mean'] = np.nanmean(qoip[qoip["question"] == qs[3]]["response_post"].apply(pd.to_numeric))
+    qs3_likert['sttdev'] = np.nanstd(qoip[qoip["question"] == qs[3]]["response_post"].apply(pd.to_numeric))
+    
     qs4_text = qoip[qoip["question"] == qs[4]]["response_post"]
+    filtered_qs4_text = qs4_text != ""
     qs5_text = qoip[qoip["question"] == qs[5]]["response_post"]
+    filtered_qs5_text = qs5_text != ""
     qs6_text = qoip[qoip["question"] == qs[6]]["response_post"].explode().value_counts()
     qs7_text = qoip[qoip["question"] == qs[7]]["response_post"].explode().value_counts()
     return (
         pd.Series(qs0, name="Select a picture of a STEM Professional"),
         pd.Series(qs1, name="Select picture that overlaps you and a STEM Professional"),
-        pd.Series(qs2_likert.value_counts(), name="Enjoyed Participating Likert"),
-        pd.Series(qs3_likert.value_counts(), name="Learned Something New Likert"),
+        pd.Series(qs2_likert, name="Enjoyed Participating Likert"),
+        pd.Series(qs3_likert, name="Learned Something New Likert"),
         pd.Series(
-            list(filter(lambda x: x != "", qs4_text.values)),
+            qs4_text.values[filtered_qs4_text],
             name="What do you learn or discover",
+            index=qoip[qoip["question"] == qs[4]][id_column][filtered_qs4_text],
         ),
         pd.Series(
-            list(filter(lambda x: x != "", qs5_text.values)),
+            qs5_text.values[filtered_qs5_text],
             name="Questions Comments Suggestions",
+            index=qoip[qoip["question"] == qs[5]][id_column][filtered_qs5_text],
         ),
-        pd.Series(qs6_text, name="Favorite Activity"),
+        pd.Series(qs6_text ,name="Favorite Activity"),
         pd.Series(qs7_text, name="Difficult of Confusing Activity"),
     )
 
