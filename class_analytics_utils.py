@@ -802,7 +802,14 @@ def add_likert_meta(questions):
 
     return questions
 
-
+def row_is_correct(row):
+    if row["question_category"] != "science":
+        return np.nan
+    try:
+        return row["answer"].lower() in row[f"response"].lower()
+    except Exception as e:
+        return 0
+    
 def merge_questions_into_dataframes(
     df_pre, df_post, questions, id_column, id_columns, pre_columns=[]
 ):
@@ -815,13 +822,13 @@ def merge_questions_into_dataframes(
         # id_vars=[id_column], var_name="question", value_name="response_pre"
         id_vars=id_columns + pre_columns,
         var_name="question",
-        value_name="response_pre",
+        value_name="response",
     )
     df_post_merged = df_post.melt(
         # id_vars=[id_column], var_name="question", value_name="response_post"
         id_vars=id_columns,
         var_name="question",
-        value_name="response_post",
+        value_name="response",
     )
     # merge the melted dataframes with the question metadata
     df_pre_merged = df_pre_merged.merge(
@@ -836,6 +843,9 @@ def merge_questions_into_dataframes(
 
     df_pre_merged[id_column] = df_pre_merged[id_column].astype(str).str.lower()
     df_post_merged[id_column] = df_post_merged[id_column].astype(str).str.lower()
+    
+    df_pre_merged['correct'] = df_pre_merged.apply(row_is_correct, axis=1)
+    df_post_merged['correct'] = df_post_merged.apply(row_is_correct, axis=1)
     
     # df_pre_merged[id_column] = pd.Categorical(
     #     df_pre_merged[id_column].astype(str).str.lower(), 
@@ -916,7 +926,10 @@ def flatten(l):
     """
     if isinstance(l, str):
         return l.split(",")
-    return [item for sublist in l for item in sublist]
+    if isinstance(l, list):
+        if all(isinstance(i, str) for i in l):
+            return l
+    return [item for sublist in l for item in sublist ]
 
 
 def q_to_num(qtag):
