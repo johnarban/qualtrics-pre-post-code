@@ -219,10 +219,19 @@ def create_initial_dataframes(
         duplicates = df_pre[df_pre.duplicated(subset=[id_column], keep=False)][
             id_column
         ].unique()
-        print("Dropping duplicate ids:")
+        print("Dropping duplicate ids from pre:")
         for dup in duplicates:
             print(f"\t{dup}")
         df_pre.drop_duplicates(subset=[id_column], inplace=True)
+    
+    if not df_post[id_column].is_unique:
+        duplicates = df_post[df_post.duplicated(subset=[id_column], keep=False)][
+            id_column
+        ].unique()
+        print("Dropping duplicate ids from post:")
+        for dup in duplicates:
+            print(f"\t{dup}")
+        df_post.drop_duplicates(subset=[id_column], inplace=True)
 
     return df_pre, df_post
 
