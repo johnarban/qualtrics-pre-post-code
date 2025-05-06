@@ -219,19 +219,27 @@ def create_initial_dataframes(
         duplicates = df_pre[df_pre.duplicated(subset=[id_column], keep=False)][
             id_column
         ].unique()
-        print("Dropping duplicate ids from pre:")
+        print("Renaming duplicate ids in pre:")
         for dup in duplicates:
-            print(f"\t{dup}")
-        df_pre.drop_duplicates(subset=[id_column], inplace=True)
-    
+            dup_indices = df_pre[df_pre[id_column] == dup].index
+            for i, idx in enumerate(dup_indices):
+                suffix = f"_pre_{hex(i)[2:].zfill(2)}"
+                new_id = f"{dup}{suffix}"
+                print(f"\t{dup} -> {new_id}")
+                df_pre.at[idx, id_column] = new_id
+
     if not df_post[id_column].is_unique:
         duplicates = df_post[df_post.duplicated(subset=[id_column], keep=False)][
             id_column
         ].unique()
-        print("Dropping duplicate ids from post:")
+        print("Renaming duplicate ids in post:")
         for dup in duplicates:
-            print(f"\t{dup}")
-        df_post.drop_duplicates(subset=[id_column], inplace=True)
+            dup_indices = df_post[df_post[id_column] == dup].index
+            for i, idx in enumerate(dup_indices):
+                suffix = f"_post_{hex(i)[2:].zfill(2)}"
+                new_id = f"{dup}{suffix}"
+                print(f"\t{dup} -> {new_id}")
+                df_post.at[idx, id_column] = new_id
 
     return df_pre, df_post
 
@@ -926,9 +934,15 @@ def flatten(l):
     """
     if isinstance(l, str):
         return l.split(",")
-    if isinstance(l, list):
-        if all(isinstance(i, str) for i in l):
-            return l
+    if hasattr(l, "__iter__"):
+        o = []
+        for i, item in enumerate(l):
+            if hasattr(item, "__iter__") and not isinstance(item, str):
+                for j in item:
+                    o.append(j)
+            else:
+                o.append(item)
+        return o
     return [item for sublist in l for item in sublist ]
 
 
