@@ -996,6 +996,11 @@ def preview_group(grouped):
 def effect_size(pre_vals, post_vals):
     """
     Calculates Cohen's d effect size between pre and post values.
+    Cohen's d for Welch test
+    The Welch test is a variant of t-test used when the equality of variance can't be assumed. 
+    The effect size can be computed by dividing the mean 
+    difference between the groups by the “averaged” standard deviation.
+    https://www.datanovia.com/en/lessons/t-test-effect-size-using-cohens-d-measure/
     """
     # calculate the effect size
     mean_diff = np.nanmean(post_vals - pre_vals, axis=0)
@@ -1272,9 +1277,67 @@ def binomial_effect_size(pre, post, raw_count_variance=True):
     pooled = pooled_variance([var_pre, var_post], [n_pre, n_post])
 
     if raw_count_variance:
-        return (p_post - p_pre) / np.sqrt(pooled) if pooled > 0 else float("inf")
-    return (nc_post - nc_pre) / np.sqrt(pooled) if pooled > 0 else float("inf")
+        return (nc_post - nc_pre) / np.sqrt(pooled) if pooled > 0 else float("inf"), np.sqrt(pooled)
+    return (p_post - p_pre) / np.sqrt(pooled) if pooled > 0 else float("inf"), np.sqrt(pooled)
 
+def standardized_differance(pre, post):
+    """
+    Calculates standardized difference between pre and post responses.
+    """
+    n_pre = len(pre)
+    nc_pre = sum(pre)
+    n_post = len(post)
+    nc_post = sum(post)
+    p_pre = nc_pre / n_pre
+    p_post = nc_post / n_post
+    
+    var_pre = binomial_var(n_pre, nc_pre, raw_count_variance=False)
+    var_post = binomial_var(n_post, nc_post, raw_count_variance=False)
+    var = var_pre + var_post
+    
+    if var > 0:
+        return (p_post - p_pre) / np.sqrt(var)
+    else:
+        return float("inf")
+    
+def two_samp_z_for_proportions(pre, post):
+    """
+    Calculates z-statistic for two-sample proportions test.
+    """
+    n_pre = len(pre)
+    nc_pre = sum(pre)
+    n_post = len(post)
+    nc_post = sum(post)
+
+    p_pre = nc_pre / n_pre
+    p_post = nc_post / n_post
+
+    pooled_p = (nc_pre + nc_post) / (n_pre + n_post)
+    z = (p_post - p_pre) / np.sqrt(pooled_p * (1 - pooled_p) * (1 / n_pre + 1 / n_post))
+    
+    return z
+
+def cohens_h(pre, post):
+    """
+    Calculates Cohen's h effect size for binary (correct/incorrect) pre/post responses.
+    """
+    n_pre = len(pre)
+    nc_pre = sum(pre)
+    n_post = len(post)
+    nc_post = sum(post)
+    p_pre = nc_pre / n_pre
+    p_post = nc_post / n_post
+    
+    if p_pre == 0:
+        p_pre = 0.0001
+    if p_post == 0:
+        p_post = 0.0001
+        
+    q_pre = 2 * np.arcsin(np.sqrt(p_pre)) 
+    q_post = 2 * np.arcsin(np.sqrt(p_post)) 
+    
+    return (q_post - q_pre)
+    
 
 def are_correct(group, pre=True):
     """
@@ -1288,6 +1351,8 @@ def are_correct(group, pre=True):
         return group.apply(
             lambda row: row["answer"].lower() in row["response_post"].lower(), axis=1
         )
+
+
 
 
 def create_content_summary(group):
@@ -1307,7 +1372,7 @@ def create_content_summary(group):
     ft = np.sum((pre == False) & (post == True))
     ff = np.sum((pre == False) & (post == False))
 
-    effect_size = binomial_effect_size(pre, post)
+    effect_size, pooled_variance = binomial_effect_size(pre, post, raw_count_variance=True) 
 
     n_discordant = tf + ft
     changed_to_true = ft
@@ -1384,11 +1449,18 @@ def create_content_summary(group):
         {
             "percent_correct_pre": f"{pre.sum() / n_total:.1%}",
             "percent_correct_post": f"{post.sum() / n_total:.1%}",
+            "pre_to_post_change_percent": f"{(post.sum() - pre.sum()) / n_total:.1%}",
+            
             "summary": summary_sentence,
             "effect_size": effect_size,
-            "pre_to_post_change": post.sum() - pre.sum(),
+            "sqrt_pooled_variance": pooled_variance,
             "p_value": np.around(overall.pvalue, 6),
-            "direction": direction(post.sum() - pre.sum()),
+            
+            "cohens_h": cohens_h(pre, post),
+            
+            "mcnemar_statistic": mcnemar.statistic,
+            "mcnemar_p": mcnemar.pvalue,
+            "discordant_summary": discordant_summary,
             "confused_count": tf,
             "confused": tf / (tf + tt) if (tf + tt > 0) else np.nan,
             "confused_p_value": (
@@ -1398,8 +1470,14 @@ def create_content_summary(group):
             ),
             "n_discordant": n_discordant,
             "n_change_to_true": changed_to_true,
-            "mcnemar_p": mcnemar.pvalue,
-            "discordant_summary": discordant_summary,
+            
+            "standardized_difference": standardized_differance(pre, post),
+            "z_statistic": two_samp_z_for_proportions(pre, post),
+            "false_to_true_p_value": np.around(false_to_true.pvalue, 6),
+            
+            "pre_to_post_change": post.sum() - pre.sum(),
+            
+            "direction": direction(post.sum() - pre.sum()),
             "tag_pre": group["tag_pre"].iloc[0],
             "tag_post": group["tag_post"].iloc[0],
             "pre_correct": pre.sum(),
