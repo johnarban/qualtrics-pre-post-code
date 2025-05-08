@@ -240,7 +240,9 @@ def create_initial_dataframes(
                 new_id = f"{dup}{suffix}"
                 print(f"\t{dup} -> {new_id}")
                 df_post.at[idx, id_column] = new_id
-
+    
+    df_pre[id_column] = df_pre[id_column].astype(str).str.strip()
+    df_post[id_column] = df_post[id_column].astype(str).str.strip()
     return df_pre, df_post
 
 
@@ -874,7 +876,7 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
     """
     Merges class and educator info from the database into the combined DataFrame.
     """
-    student_ids = list(filter(lambda x: x.isnumeric(), df_combined[id_column].unique()))
+    student_ids = list(filter(lambda x: x.isnumeric(), df_combined[id_column].str.strip().unique()))
     class_info = db.get_students_classes_info(student_ids)
     
     # Helper function to infer values from pre/post inputs
