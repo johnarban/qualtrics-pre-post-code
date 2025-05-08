@@ -874,37 +874,114 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
     """
     Merges class and educator info from the database into the combined DataFrame.
     """
-    class_info = db.get_students_classes_info(
-        list(filter(lambda x: x.isnumeric(), df_combined[id_column].unique()))
+    student_ids = list(filter(lambda x: x.isnumeric(), df_combined[id_column].unique()))
+    class_info = db.get_students_classes_info(student_ids)
+    
+    # Helper function to infer values from pre/post inputs
+    def infer_common_value(pre_val, post_val):
+        pre_val = str(pre_val).strip().lower() if pd.notna(pre_val) else ""
+        post_val = str(post_val).strip().lower() if pd.notna(post_val) else ""
+        if pre_val == post_val:
+            return pre_val
+        return post_val or pre_val or ""
+
+    # Handle case when no class_info is available
+    if class_info is None or class_info.empty:
+        df_combined["class_name"] = df_combined.apply(
+            lambda row: infer_common_value(
+                row.get("CosmicDS Pre-Survey - Course/Section_pre"),
+                row.get("CosmicDS Pre-Survey - Course/Section_post")
+            ).title(), axis=1
+        )
+        df_combined["Educator"] = df_combined.apply(
+            lambda row: infer_common_value(
+                row.get("CosmicDS Pre-Survey - Instructor's Last Name_pre"),
+                row.get("CosmicDS Pre-Survey - Instructor's Last Name_post")
+            ).title(), axis=1
+        )
+        return df_combined
+    
+
+    class_info["student_id"] = class_info["student_id"].astype(str).str.lower() 
+    
+    class_info["class_name"] = class_info["name"].astype(str).str.strip().str.lower()
+    class_info["Educator"] = (
+        class_info["first_name"].astype(str).str.strip().str.title() + " " +
+        class_info["last_name"].astype(str).str.strip().str.title()
+    )
+    class_info["Educator_Last"] = class_info["last_name"].astype(str).str.strip().str.lower()
+
+    # Select and rename necessary columns
+    class_info_subset = class_info[["student_id", "class_name", "id", "Educator", "Educator_Last"]].rename(
+        columns={"id": "class_id"}
     )
 
-    if class_info is None:
-        df_combined["class_name"] = df_combined[
-            "CosmicDS Pre-Survey - Course/Section_pre"
-        ]
-        df_combined["Educator"] = df_combined[
-            "CosmicDS Pre-Survey - Instructor's Last Name_post"
-        ]
-        return df_combined
 
-    class_info["student_id"] = class_info["student_id"].astype(str).str.lower()
-
-    # rename columns
-    class_colnames = {
-        "name": "class_name",
-        "id": "class_id",
-    }
-
-    class_info["Educator"] = class_info["first_name"] + " " + class_info["last_name"]
-    class_info.rename(columns=class_colnames, inplace=True)
-
-    class_info = class_info[["student_id", "class_name", "class_id", "Educator"]]
 
     # merge the class info into the combined dataframe
-    return df_combined.merge(
-        class_info, left_on=id_column, right_on="student_id", how="left"
+    df_combined = df_combined.copy()
+    df_combined[id_column] = df_combined[id_column].astype(str).str.lower()
+    df_combined = df_combined.merge(
+        class_info_subset, left_on=id_column, right_on="student_id", how="left"
+    )
+    
+    # Infer missing class_name and Educator_Last from survey
+    inferred_class_names = df_combined.apply(
+        lambda row: infer_common_value(
+            row.get("CosmicDS Pre-Survey - Course/Section_pre"),
+            row.get("CosmicDS Pre-Survey - Course/Section_post")
+        ),
+        axis=1
+    ).str.lower()
+
+    inferred_educators_last = df_combined.apply(
+        lambda row: infer_common_value(
+            row.get("CosmicDS Pre-Survey - Instructor's Last Name_pre"),
+            row.get("CosmicDS Pre-Survey - Instructor's Last Name_post")
+        ),
+        axis=1
+    ).str.lower()
+    
+    ## Fill in missing class names and educator last names
+    df_combined["class_name"] = df_combined["class_name"].combine_first(inferred_class_names).str.title()
+    df_combined["Educator_Last"] = df_combined["Educator_Last"].combine_first(inferred_educators_last)
+
+    # Rebuild Educator full name if missing
+    df_combined["Educator"] = df_combined["Educator"].fillna(
+        df_combined["Educator_Last"].apply(lambda x: str(x).strip().title() if pd.notna(x) else "")
     )
 
+    # Fill in class_id based on same class_name and Educator_Last
+    mask_missing_class_id = df_combined["class_id"].isna()
+    lookup_group = df_combined[~df_combined["class_id"].isna()].copy()
+
+    # --- Lookup prep ---
+    # Create composite key for grouping
+    lookup_group = df_combined[~df_combined["class_id"].isna()].copy()
+    lookup_group["key"] = (
+        lookup_group["class_name"].str.lower().fillna("") + "|" + 
+        lookup_group["Educator_Last"].str.lower().fillna("")
+    )
+
+    # Drop duplicates, keeping the first valid entry for each key
+    lookup_reference = lookup_group.drop_duplicates("key")[["key", "class_id", "Educator"]].set_index("key")
+
+    class_id_lookup = lookup_reference["class_id"].to_dict()
+    educator_lookup = lookup_reference["Educator"].to_dict()
+
+    # --- Build fill keys for full df_combined ---
+    fill_keys = (
+        df_combined["class_name"].str.lower().fillna("") + "|" +
+        df_combined["Educator_Last"].str.lower().fillna("")
+    )
+
+    # --- Fill missing class_id and Educator where class_id is currently missing ---
+    mask_missing_class_id = df_combined["class_id"].isna()
+
+    df_combined.loc[mask_missing_class_id, "class_id"] = fill_keys[mask_missing_class_id].map(class_id_lookup)
+    df_combined.loc[mask_missing_class_id, "Educator"] = fill_keys[mask_missing_class_id].map(educator_lookup)
+    
+    return df_combined
 
 def preview_group(grouped):
     """
