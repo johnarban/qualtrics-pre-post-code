@@ -814,11 +814,14 @@ def add_likert_meta(questions):
 
 def row_is_correct(row):
     if row["question_category"] != "science":
-        return np.nan
+        if row["question_category"] == "likert":
+            return row["response"]
+        
+        return ""
     try:
-        return row["answer"].lower() in row[f"response"].lower()
+        return str(int(row["answer"].lower() in row[f"response"].lower()))
     except Exception as e:
-        return 0
+        return ""
     
 def merge_questions_into_dataframes(
     df_pre, df_post, questions, id_column, id_columns, pre_columns=[]

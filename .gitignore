@@ -2,3 +2,4 @@
 *.XLSX
 *.pyc
 qualtrics_keys.py
+qualtrics_data_fixes.py
