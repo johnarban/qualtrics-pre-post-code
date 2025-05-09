@@ -817,11 +817,11 @@ def row_is_correct(row):
         if row["question_category"] == "likert":
             return row["response"]
         
-        return ""
+        return np.nan
     try:
-        return str(int(row["answer"].lower() in row[f"response"].lower()))
+        return int(row["answer"].lower() in row[f"response"].lower())
     except Exception as e:
-        return ""
+        return 0
     
 def merge_questions_into_dataframes(
     df_pre, df_post, questions, id_column, id_columns, pre_columns=[]
