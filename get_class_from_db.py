@@ -93,3 +93,43 @@ def get_students_classes_info(student_ids: list):
     except Exception as e:
         print(f"Error: {e}")
         return None
+
+
+
+def get_student_progress_state(student_ids: list) -> Optional[pd.DataFrame]:
+    """
+    Get the progress state of students in their classes.
+    
+    Args:
+        student_ids (list): List of student IDs.
+        
+    Returns:
+        pd.DataFrame: DataFrame containing student progress state or None if an error occurs.
+    """
+    try:
+        # SQL query to get the progress state of students
+        sql_query = """
+        SELECT 
+        ss.student_id,
+            MAX(st.stage_index) AS max_stage_index,
+            JSON_EXTRACT(ss.state, '$.max_step') AS max_step,
+            JSON_EXTRACT(ss.state, '$.total_steps') AS total_steps,
+            JSON_EXTRACT(ss.state, '$.progress') AS progress,
+            JSON_EXTRACT(s.story_state, '$.story.free_responses.responses') AS free_responses,
+            JSON_EXTRACT(s.story_state, '$.story.mc_scoring.scores') AS mc_scoring
+        FROM StageStates AS ss
+        JOIN Stages AS st ON ss.stage_name = st.stage_name
+        JOIN StoryStates as s ON ss.student_id = s.student_id
+        WHERE ss.student_id in ({student_ids})
+        GROUP BY ss.student_id;
+        """
+        
+        # Format the query with the list of student IDs
+        formatted_query = sql_query.format(
+            student_ids=",".join(map(str, student_ids))
+        )
+        
+        return run_sql_query(formatted_query, database_keys, return_df=True)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None

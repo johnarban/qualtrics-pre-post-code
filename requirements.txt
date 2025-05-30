@@ -2,3 +2,4 @@ pandas
 nltk
 scipy
 numpy
+pip install mysql-connector-python
