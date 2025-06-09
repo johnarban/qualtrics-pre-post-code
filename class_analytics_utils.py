@@ -208,38 +208,45 @@ def create_initial_dataframes(
     description_post,
     data_post,
     id_column,
+    fix_duplicates=True,
 ):
     """
     Creates pandas DataFrames for pre and post survey data, indexed by id_column. Drops duplicate IDs in pre.
     """
     df_pre = pd.DataFrame(data_pre, columns=description_pre)
     df_post = pd.DataFrame(data_post, columns=description_post)
+    
+    df_pre['Finished'] = df_pre['Finished'] == "True"
+    df_post['Finished'] = df_post['Finished'] == "True"
+    df_pre = df_pre.loc[df_pre['Finished'] == True]
+    df_post = df_post.loc[df_post['Finished'] == True]
+    
+    if fix_duplicates:
+        if not df_pre[id_column].is_unique:
+            duplicates = df_pre[df_pre.duplicated(subset=[id_column], keep=False)][
+                id_column
+            ].unique()
+            print("Renaming duplicate ids in pre:")
+            for dup in duplicates:
+                dup_indices = df_pre[df_pre[id_column] == dup].index
+                for i, idx in enumerate(dup_indices):
+                    suffix = f"_pre_{hex(i)[2:].zfill(2)}"
+                    new_id = f"{dup}{suffix}"
+                    print(f"\t{dup} -> {new_id}")
+                    df_pre.at[idx, id_column] = new_id
 
-    if not df_pre[id_column].is_unique:
-        duplicates = df_pre[df_pre.duplicated(subset=[id_column], keep=False)][
-            id_column
-        ].unique()
-        print("Renaming duplicate ids in pre:")
-        for dup in duplicates:
-            dup_indices = df_pre[df_pre[id_column] == dup].index
-            for i, idx in enumerate(dup_indices):
-                suffix = f"_pre_{hex(i)[2:].zfill(2)}"
-                new_id = f"{dup}{suffix}"
-                print(f"\t{dup} -> {new_id}")
-                df_pre.at[idx, id_column] = new_id
-
-    if not df_post[id_column].is_unique:
-        duplicates = df_post[df_post.duplicated(subset=[id_column], keep=False)][
-            id_column
-        ].unique()
-        print("Renaming duplicate ids in post:")
-        for dup in duplicates:
-            dup_indices = df_post[df_post[id_column] == dup].index
-            for i, idx in enumerate(dup_indices):
-                suffix = f"_post_{hex(i)[2:].zfill(2)}"
-                new_id = f"{dup}{suffix}"
-                print(f"\t{dup} -> {new_id}")
-                df_post.at[idx, id_column] = new_id
+        if not df_post[id_column].is_unique:
+            duplicates = df_post[df_post.duplicated(subset=[id_column], keep=False)][
+                id_column
+            ].unique()
+            print("Renaming duplicate ids in post:")
+            for dup in duplicates:
+                dup_indices = df_post[df_post[id_column] == dup].index
+                for i, idx in enumerate(dup_indices):
+                    suffix = f"_post_{hex(i)[2:].zfill(2)}"
+                    new_id = f"{dup}{suffix}"
+                    print(f"\t{dup} -> {new_id}")
+                    df_post.at[idx, id_column] = new_id
     
     df_pre[id_column] = df_pre[id_column].astype(str).str.strip()
     df_post[id_column] = df_post[id_column].astype(str).str.strip()
@@ -336,6 +343,14 @@ def add_retrospective_columns(questions):
     questions.loc[questions["is_retrospective"], "question_category"] = "retrospective"
 # We need to reconstruct the parent demographic question. The API returns this split accross
 
+education_map = {
+    "": 0,
+    "Less than High School": 1,
+    "High School Diploma/GED": 2,
+    "Some College/ Associate Degree": 3,
+    "Bachelor’s Degree": 4,
+    "Master’s Degree or higher": 5,
+}
 
 def process_parent_questions(questions, df_pre, df_post, sep=2):
     """
@@ -356,14 +371,7 @@ def process_parent_questions(questions, df_pre, df_post, sep=2):
         questions["question"].str.contains("Parent/Guardian 2")
     ]["question"][:sep]
 
-    education_map = {
-        "": 0,
-        "Bachelor’s Degree": 1,
-        "Less than High School": 2,
-        "High School Diploma/GED": 3,
-        "Some College/ Associate Degree": 4,
-        "Master’s Degree or higher": 5,
-    }
+    
     # get the highest education level of the parent
     df_pre["Parent 1 Education"] = df_pre[parent1_edu].apply(
         lambda x: max(x, key=lambda i: education_map.get(i, 0)) or "(empty)", axis=1
@@ -559,11 +567,61 @@ def process_gender_questions(questions, df_pre, df_post):
     return questions, gender_questions
 
 
+school_level_map = {
+    # key: [high school, college]
+    "First Year": {'hs': 9, 'college': 13, 'other': 999},
+    "Second Year": {'hs': 10, 'college': 14, 'other': 999},
+    "Third Year": {'hs': 11, 'college': 15, 'other': 999},
+    "Fourth Year": {'hs': 12, 'college': 16, 'other': 999},
+}
+
+school_level_map_hco = {
+    0: 'hs',
+    1: 'college',
+    2: 'other',
+}
+
+school_level_map = {
+    # key: [high school, college]
+    "First Year": {'hs': 9, 'college': 13, 'other': 999},
+    "Second Year": {'hs': 10, 'college': 14, 'other': 999},
+    "Third Year": {'hs': 11, 'college': 15, 'other': 999},
+    "Fourth Year": {'hs': 12, 'college': 16, 'other': 999},
+}
+
+school_level_map_hco = {
+    0: 'hs',
+    1: 'college',
+    2: 'other',
+}
+
+def map_school_level(v, force_number=False):
+    try:
+        number = map(
+            lambda i, l: school_level_map.get(l, {}).get(school_level_map_hco.get(i, 2), 999), # type: ignore
+                *zip(*enumerate(v))
+                )
+        number = min(number)
+        if len(v) == 4:
+            if v[3] != '':
+                # if it has a number, extract it
+                other_val = [int(x) for x in v[3].split() if x.isdigit()]
+                if other_val:
+                    if other_val[0] <= number and number != 999:
+                       number = other_val[0]
+                elif number == 999:
+                    number = v[3] if not force_number else 999
+                        
+        return number if number < 999 else np.nan
+    except Exception as e:
+        return np.nan
+
 def process_school_questions(questions, df_pre, df_post):  # school questions
     """
     Combines school level questions into a single 'Student School Level' column.
     """
     # combine the race questions
+    # Goes into Are you in high school, college, other
     school_questions = questions.loc[questions["question"].str.contains("Are you in")][
         "question"
     ]
@@ -571,13 +629,33 @@ def process_school_questions(questions, df_pre, df_post):  # school questions
     # what magic is frozenset(filter(bool,v)) doing? it is removing all the empty strings from the list
     df_pre["Student School Level"] = (
         df_pre[school_questions]
-        .apply(lambda v: frozenset(filter(bool, v)), axis=1)
+        .apply(lambda v: list(v), axis=1)
         .apply(lambda x: x if len(x) > 0 else frozenset(["(empty)"]))
     )
-
+    
+    
+    df_pre["Student Grade Level"] = df_pre["Student School Level"].apply(
+        lambda v: map_school_level(v, force_number=True)
+    )
+    
+    
+    
+    
     new_questions = [
         {
             "question": "Student School Level",
+            "both": False,
+            "in_pre": True,
+            "in_post": False,
+            "tag_pre": questions.loc[questions["question"].str.contains("Are you in")][
+                "tag_pre"
+            ].values[0],
+            "tag_post": None,
+            "question_category": "demographics",
+            "is_likert": False,
+        },
+        {
+            "question": "Student Grade Level",
             "both": False,
             "in_pre": True,
             "in_post": False,
@@ -648,10 +726,18 @@ def multiindex_to_index(columns):
         for col in columns
     ])
 
-def to_flatindex(df):
+def safe_join(val):
+    if isinstance(val, str):
+        return val
+    elif hasattr(val, '__iter__') and not isinstance(val, (str, bytes)):
+        return '_'.join(map(str, val))
+def to_flatindex(df, string = False):
     # flatten the multiindex columns
     dfcopy = df.copy()
-    dfcopy.columns = multiindex_to_index(dfcopy.columns)
+    index = multiindex_to_index(dfcopy.columns)
+    if string:
+        index = pd.Index([safe_join(s) for s in index])
+    dfcopy.columns = index
     return dfcopy
 
 def to_multindex(df):
@@ -804,6 +890,14 @@ def add_content_question_meta(questions, description_pre, description_post, quie
     ] = "intro"
     questions.loc[
         questions["question"].str.contains("Duration \(in seconds\)"),
+        "question_category",
+    ] = "stat"
+    questions.loc[
+        questions["question"].str.contains("Finished"),
+        "question_category",
+    ] = "stat"
+    questions.loc[
+        questions["question"].str.contains("Progress"),
         "question_category",
     ] = "stat"
     questions.loc[
@@ -1043,7 +1137,8 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
     """
     Merges class and educator info from the database into the combined DataFrame.
     """
-    student_ids = list(filter(lambda x: x.isnumeric(), df_combined[id_column].str.strip().unique()))
+    student_ids = list(filter(lambda x: x.isnumeric() and int(x)>5000, df_combined[id_column].str.strip().str.split("_").apply(lambda x:x[0] ).unique()))
+    df_combined['clean_id'] = df_combined[id_column].str.strip().str.split("_").apply(lambda x:x[0])
     class_info = db.get_students_classes_info(student_ids)
     
     # Helper function to infer values from pre/post inputs
@@ -1081,7 +1176,7 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
     class_info["Educator_Last"] = class_info["last_name"].astype(str).str.strip().str.lower()
 
     # Select and rename necessary columns
-    class_info_subset = class_info[["student_id", "class_name", "id", "Educator", "Educator_Last"]].rename(
+    class_info_subset = class_info[["student_id", "class_name", "id", "Educator", "Educator_Last", "educator_id"]].rename(
         columns={"id": "class_id"}
     )
 
@@ -1091,7 +1186,7 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
     df_combined = df_combined.copy()
     df_combined[id_column] = df_combined[id_column].astype(str).str.lower()
     df_combined = df_combined.merge(
-        class_info_subset, left_on=id_column, right_on="student_id", how="left"
+        class_info_subset, left_on='clean_id', right_on="student_id", how="left"
     )
     
     # Infer missing class_name and Educator_Last from survey
@@ -1133,10 +1228,11 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
     )
 
     # Drop duplicates, keeping the first valid entry for each key
-    lookup_reference = lookup_group.drop_duplicates("key")[["key", "class_id", "Educator"]].set_index("key")
+    lookup_reference = lookup_group.drop_duplicates("key")[["key", "class_id", "Educator", "educator_id"]].set_index("key")
 
     class_id_lookup = lookup_reference["class_id"].to_dict()
     educator_lookup = lookup_reference["Educator"].to_dict()
+    educator_id_lookup = lookup_reference["educator_id"].to_dict()
 
     # --- Build fill keys for full df_combined ---
     fill_keys = (
@@ -1149,6 +1245,7 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
 
     df_combined.loc[mask_missing_class_id, "class_id"] = fill_keys[mask_missing_class_id].map(class_id_lookup)
     df_combined.loc[mask_missing_class_id, "Educator"] = fill_keys[mask_missing_class_id].map(educator_lookup)
+    df_combined.loc[mask_missing_class_id, "educator_id"] = fill_keys[mask_missing_class_id].map(educator_id_lookup)
     
     return df_combined
 
@@ -1961,3 +2058,21 @@ def create_bulk_likert_stats(df_pre_merged, df_post_merged):
         results.append(result)
     
     return pd.DataFrame(results)
+
+import os
+from contextlib import contextmanager
+@contextmanager
+def check_if_exists(filename, overwrite=False, error = False):
+    """
+    Context manager to check if a file exists before
+    writing to it.
+    """
+    allow_write = (not os.path.exists(filename)) or overwrite
+    if not allow_write:
+        if error:
+            raise FileExistsError(f"File {filename} already exists. Use overwrite=True to overwrite.")
+        else:
+            print(f"File {filename} already exists. Use overwrite=True to overwrite.")
+        yield None
+    else:
+        yield filename

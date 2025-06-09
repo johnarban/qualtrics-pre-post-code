@@ -78,7 +78,8 @@ def get_students_classes_info(student_ids: list):
             Educators.last_name,
             Classes.id, 
             Classes.name,
-            StudentsClasses.student_id
+            StudentsClasses.student_id,
+            Educators.id AS educator_id
         FROM Classes
         JOIN StudentsClasses on StudentsClasses.class_id = Classes.id
         JOIN Educators on Educators.id = Classes.educator_id

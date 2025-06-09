@@ -16,13 +16,13 @@ def start_response_export(token, data_center, survey_id, format = "csv", numeric
             "format": "csv" ,
             "compress": False,
             "useLabels": not numeric,
-            "surveyMetadataIds": ["duration"]
+            "surveyMetadataIds": ["duration", "finished", "progress"]
             }
     elif format == "json":
         payload = { 
             "format": "json" ,
             "compress": False,
-            "surveyMetadataIds": ["duration"]
+            "surveyMetadataIds": ["duration", "finished", "progress"]
             }
         
     headers = {

@@ -35,7 +35,6 @@ def init_nltk():
             except:
                 nltk.download(resource) # will only download if not already present
 
-init_nltk()
 
 def create_summary(question, n=3):
     try:
