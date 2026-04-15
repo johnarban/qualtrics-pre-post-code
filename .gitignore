@@ -6,7 +6,6 @@ qualtrics_keys.py
 qualtrics_data_fixes.py
 zipit.sh
 sentiment_analysis.ipynb
-retrospective_questions.json
 question_metadata.json
 binomial_statistics.py
 binomial_analysis.ipynb
