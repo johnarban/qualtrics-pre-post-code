@@ -96,20 +96,6 @@ def load_data(from_api=True, survey_id="", filename=None):
             return f.read()
 
 
-def load_pre_data(from_api=True, filename="2025_pre_response.csv"):
-    """
-    Loads pre-survey data using load_data().
-    """
-    return load_data(from_api, survey_id_2025_pre, filename)
-
-
-def load_post_data(from_api=True, filename="2025_post_response.csv"):
-    """
-    Loads post-survey data using load_data().
-    """
-    return load_data(from_api, survey_id_2025_post, filename)
-
-
 def parse_response(response):
     """
     Parses a Qualtrics CSV response string into header, description, and data.
@@ -127,6 +113,26 @@ def parse_response(response):
 
     return header, description, data
 
+def is_yes_no_empty_column(data, idx):
+    if data.shape[1] <= idx:
+        return False
+    values = {str(value).strip().lower() for value in data[:, idx]}
+    return values.issubset({"", "yes", "no"})
+
+def drop_yes_no_columns(header, description, data, survey_name):
+    if is_yes_no_empty_column(data, 4):
+        print(f"Dropping yes/no column 4 from {survey_name} survey")
+        header.pop(4)
+        description.pop(4)
+        data = np.delete(data, 4, axis=1)
+        
+    if is_yes_no_empty_column(data, 3):
+        print(f"Dropping yes/no column 3 from {survey_name} survey")
+        header.pop(3)
+        description.pop(3)
+        data = np.delete(data, 3, axis=1)
+    return data
+
 
 def column_cleanup(
     header_pre,
@@ -140,11 +146,15 @@ def column_cleanup(
     """
     Drops specified columns from pre and post survey data and aligns question descriptions.
     """
+    
     for i in range(len(description_post)):
         if "Post-Survey" in description_post[i]:
             description_post[i] = description_post[i].replace(
                 "Post-Survey", "Pre-Survey"
             )
+
+    data_pre = drop_yes_no_columns(header_pre, description_pre, data_pre, "pre")
+    data_post = drop_yes_no_columns(header_post, description_post, data_post, "post")
 
     for col in drop_columns:
         if col in description_post:
@@ -159,6 +169,7 @@ def column_cleanup(
             header_pre.pop(pre_idx)
             description_pre.pop(pre_idx)
             data_pre = np.delete(data_pre, pre_idx, axis=1)
+    return data_pre, data_post
 
 
 def get_pre_header_for_post_question(
@@ -310,7 +321,7 @@ def is_likert_column(x: pd.Series):
     """
     Returns True if any value in the Series is a Likert answer.
     """
-    return x.apply(is_likert_answer).any() or  ('How strongly do you agree or disagree'.lower() in x.name.lower())
+    return x.apply(is_likert_answer).any() or  ('How strongly do you agree or disagree'.lower() in x.name.lower()) # type: ignore
 
 
 def convert_likert_to_numeric(x):
@@ -682,7 +693,7 @@ def process_activity_questions(questions, df_pre, df_post):
     # combine the race questions
     # escape cuz it treats it like a regex
     activity_question = questions.loc[
-        questions["question"].str.contains("Which activity \(or activities\) did you")
+        questions["question"].str.contains("Which activity \(or activities\) did you") # pyright: ignore[reportInvalidStringEscapeSequence]
     ]["question"]
 
     # what magic is frozenset(filter(bool,v)) doing? it is removing all the empty strings from the list
@@ -700,7 +711,7 @@ def process_activity_questions(questions, df_pre, df_post):
             "in_post": True,
             "tag_pre": questions.loc[
                 questions["question"].str.contains(
-                    "Which activity \(or activities\) did you"
+                    "Which activity \(or activities\) did you" # pyright: ignore[reportInvalidStringEscapeSequence]
                 )
             ]["tag_post"].values[0],
             "tag_post": None,
@@ -889,7 +900,7 @@ def add_content_question_meta(questions, description_pre, description_post, quie
         questions["question"].str.contains("CosmicDS"), "question_category"
     ] = "intro"
     questions.loc[
-        questions["question"].str.contains("Duration \(in seconds\)"),
+        questions["question"].str.contains("Duration \(in seconds\)"), # pyright: ignore[reportInvalidStringEscapeSequence]
         "question_category",
     ] = "stat"
     questions.loc[
@@ -942,6 +953,11 @@ def is_retrospective_question(question):
     Checks if a question is a retrospective question based on its content.
     """
     qs = [
+        "13. A STEM professional is a person who uses science, technology, engineering, or mathematics in their everyday work.Think back to the time just before this program began, and select the picture that best describes the overlap of the image you had of yourself and your image of what a STEM professional is.",
+        "14. Select the picture that best describes the overlap of the image you currently have of yourself and your image of what a STEM professional is.",
+        "15. How strongly do you agree or disagree with the following statements? - I enjoyed participating in the Cosmic Data Story activities",
+        "15. How strongly do you agree or disagree with the following statements? - I learned something new from the Cosmic Data Story activities",
+        
         "14. A STEM professional is a person who uses science, technology, engineering, or mathematics in their everyday work.Think back to the time just before this program began, and select the picture that best describes the overlap of the image you had of yourself and your image of what a STEM professional is.",
         "15. Select the picture that best describes the overlap of the image you currently have of yourself and your image of what a STEM professional is.",
         "16. How strongly do you agree or disagree with the following statements? - I enjoyed participating in the Cosmic Data Story activities",
@@ -1113,7 +1129,22 @@ def safe_sum(x):
         print("Warning: None or NaN found in input list.")
     return sum(v for v in x if not isinstance(v, str) and pd.notna(v))
 
-def get_student_states(df_combined: pd.DataFrame, id_column):
+def get_student_states(df_combined: pd.DataFrame, id_column, skip_db=False):
+    if skip_db:
+        student_ids = df_combined[id_column].astype(str).str.strip()
+        # dataframe with columns student_id, free_responses, mc_scoring, overall_progress, mc_stage_5_score, full_mc_score, finished_story
+        # only student_id is required, the rest can be empty or 0
+        students_states = pd.DataFrame({
+            'student_id': student_ids,
+            'free_responses': [{} for _ in student_ids],
+            'mc_scoring': [{} for _ in student_ids],    
+            'overall_progress': [0 for _ in student_ids],
+            'mc_stage_5_score': [0 for _ in student_ids],
+            'full_mc_score': [0 for _ in student_ids],
+            'finished_story': [False for _ in student_ids]
+        })
+        return students_states
+
     student_ids = list(filter(lambda x: x.isnumeric(), df_combined[id_column].str.strip().unique()))
     students_states = db.get_student_progress_state(student_ids)
     if students_states is None or students_states.empty:
@@ -1133,7 +1164,7 @@ def get_student_states(df_combined: pd.DataFrame, id_column):
 
     
 
-def get_class_info(df_combined: pd.DataFrame, id_column):
+def get_class_info(df_combined: pd.DataFrame, id_column, skip_db=False):
     """
     Merges class and educator info from the database into the combined DataFrame.
     """
@@ -1150,7 +1181,16 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
         return post_val or pre_val or ""
 
     # Handle case when no class_info is available
-    if class_info is None or class_info.empty:
+    if skip_db or class_info is None or class_info.empty: # type: ignore
+        # if the df_combined['clean_id'] is numeric use it, else use the original id_column
+        # clean_is_numeric = df_combined['clean_id'].str.isnumeric()
+        # df_combined["student_id"] = np.where(
+        #     clean_is_numeric,
+        #     df_combined['clean_id'],
+        #     df_combined[id_column].astype(str).str.strip().str.lower()
+        # )
+        df_combined["student_id"] = df_combined[id_column].astype(str).str.strip().str.lower()
+        
         df_combined["class_name"] = df_combined.apply(
             lambda row: infer_common_value(
                 row.get("CosmicDS Pre-Survey - Course/Section_pre"),
@@ -1163,20 +1203,23 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
                 row.get("CosmicDS Pre-Survey - Instructor's Last Name_post")
             ).title(), axis=1
         )
+        df_combined["Educator_Last"] = df_combined["Educator"].astype(str).str.strip().str.lower()
+        df_combined["class_id"] = df_combined["Educator_Last"]
+        df_combined["educator_id"] = df_combined["Educator_Last"]
         return df_combined
     
 
-    class_info["student_id"] = class_info["student_id"].astype(str).str.lower() 
+    class_info["student_id"] = class_info["student_id"].astype(str).str.lower()  # type: ignore
     
-    class_info["class_name"] = class_info["name"].astype(str).str.strip().str.lower()
-    class_info["Educator"] = (
-        class_info["first_name"].astype(str).str.strip().str.title() + " " +
-        class_info["last_name"].astype(str).str.strip().str.title()
-    )
-    class_info["Educator_Last"] = class_info["last_name"].astype(str).str.strip().str.lower()
+    class_info["class_name"] = class_info["name"].astype(str).str.strip().str.lower() # type: ignore
+    class_info["Educator"] = ( # type: ignore
+        class_info["first_name"].astype(str).str.strip().str.title() + " " + # type: ignore
+        class_info["last_name"].astype(str).str.strip().str.title() # type: ignore
+    ) # type: ignore
+    class_info["Educator_Last"] = class_info["last_name"].astype(str).str.strip().str.lower() # type: ignore
 
     # Select and rename necessary columns
-    class_info_subset = class_info[["student_id", "class_name", "id", "Educator", "Educator_Last", "educator_id"]].rename(
+    class_info_subset = class_info[["student_id", "class_name", "id", "Educator", "Educator_Last", "educator_id"]].rename( # type: ignore
         columns={"id": "class_id"}
     )
 
@@ -1187,6 +1230,12 @@ def get_class_info(df_combined: pd.DataFrame, id_column):
     df_combined[id_column] = df_combined[id_column].astype(str).str.lower()
     df_combined = df_combined.merge(
         class_info_subset, left_on='clean_id', right_on="student_id", how="left"
+    )
+    df_combined["student_id"] = (
+        df_combined["student_id"]
+        .fillna(df_combined["clean_id"])
+        .astype(str)
+        .str.lower()
     )
     
     # Infer missing class_name and Educator_Last from survey
@@ -1435,7 +1484,7 @@ def wilcoxon_signed_rank_test(pre, post):
             correction=False,
             method="approx",
         )
-        return o.statistic, o.pvalue, o.zstatistic  # type: ignore
+        return o.statistic, o.pvalue, o.statistic  # type: ignore
     except ValueError as e:
         print(f"Wilcoxon test failed: {e}")
         print(f"Pre: {pre}")
@@ -1820,7 +1869,7 @@ def add_answer_column(questions_both):
 
 from scipy.stats import fisher_exact, norm
 def p_to_sigma(p_value):
-    return np.nan_to_num(norm.isf(p_value), float("inf"))
+    return np.nan_to_num(norm.isf(p_value), float("inf")) # type: ignore
 def fisher_test(pre_correct, pre_total, post_correct, post_total):
     table = [
         [post_correct, post_total - post_correct],
@@ -1914,7 +1963,7 @@ def create_bulk_content_stats(df_pre_merged, df_post_merged):
         
         # Format summary sentence
         change_direction = "improvement" if post_prop > pre_prop else "decline" if post_prop < pre_prop else "no change"
-        significance = "statistically significant" if p_value < 0.05 else "not statistically significant"
+        significance = "statistically significant" if p_value < 0.05 else "not statistically significant" # type: ignore
         summary = f"There was a {significance} {change_direction} from pre ({pre_correct}/{pre_n}, {pre_prop:.1%}) to post ({post_correct}/{post_n}, {post_prop:.1%}). Effect size (h) = {h:.2f}, p = {p_value:.3f}."
         
         # Store results
@@ -1931,7 +1980,7 @@ def create_bulk_content_stats(df_pre_merged, df_post_merged):
             'cohens_h': h,
             'standardized_difference': z,
             'chi2': chi2,
-            'chi2_p_value': np.around(p_value, 6),
+            'chi2_p_value': np.around(p_value, 6), # type: ignore
             'pre_correct': pre_correct,
             'post_correct': post_correct,
             'pre_n': pre_n,
